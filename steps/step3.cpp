@@ -34,42 +34,70 @@ struct PreviousAwaiter { // 不变
     void await_resume() const noexcept {}
 };
 
-// 对于高性能协程库，placement new通常是更好的选择。// 但我不会写QAQ
+// 对于高性能协程库， placement new 通常是更好的选择。
 template <class T>
 struct Promise {
-    // union {
-    //     T mResult;
-    // };
+    union {
+        T mResult;
+    };
     // P.S.根据C++标准，如果联合体包含非平凡类型的成员，该联合体的默认构造函数会被隐式删除​​
-    optional<T> mResult; // 开销比 variant 小
+    // 核心原因是编译器不知道应该构造哪一个成员
+    // 如果不考虑使用union， optional<T> mResult; // 开销比 variant 小
     coroutine_handle<> mPrevious{};
     exception_ptr mExceptionPtr{};
 
-    Promise() noexcept = default;
+    // 状态机 用于追踪 Promise 的当前状态来构造和析构 union
+    enum class State : uint8_t { Empty, Value, Exception };
+    State mState = State::Empty;
+
+    Promise() noexcept {}; // 为非平凡类型的成员指定空构造函数
+    Promise(const Promise&) = delete;
     Promise(Promise&&) = delete;
-    ~Promise() = default;
+    Promise& operator=(const Promise&) = delete;
+    Promise& operator=(Promise&&) = delete;
+    ~Promise() {
+        // 如果存储的是一个有效值，则必须手动调用其析构函数
+        if (mState == State::Value) {
+            // mResult.~T();
+            destroy_at(&mResult);
+        }
+    }
 
     coroutine_handle<Promise> get_return_object() { return coroutine_handle<Promise>::from_promise(*this); }
     auto initial_suspend() noexcept { return suspend_always{}; }
     auto final_suspend() noexcept { return PreviousAwaiter(mPrevious); } // 返回 PreviousAwaiter
 
     auto yield_value(T ret) noexcept {
-        mResult = std::move(ret);
+        // new (&mResult) T(std::move(ret));
+        construct_at(&mResult, std::move(ret));
+        mState = State::Value;
         return suspend_always{};
     }
 
-    void return_value(T ret) noexcept { mResult = std::move(ret); }
+    template <typename U>
+    void return_value(U&& ret) noexcept {
+        construct_at(&mResult, std::forward<U>(ret));
+        mState = State::Value;
+    }
 
     void unhandled_exception() noexcept {
         debug(), "unhandled_exception()";
         mExceptionPtr = std::current_exception();
+        mState = State::Exception;
     }
 
-    T result() {
-        if (mExceptionPtr) [[unlikely]] {
+    // 引用限定符​​，限制成员函数只能被特定值类别的对象调用
+    T& result() & {
+        if (mState == State::Exception) [[unlikely]] {
             rethrow_exception(mExceptionPtr);
         }
-        return mResult.value();
+        return mResult;
+    }
+    T&& result() && {
+        if (mState == State::Exception) [[unlikely]] {
+            rethrow_exception(mExceptionPtr);
+        }
+        return std::move(mResult);
     }
 };
 
