@@ -1,0 +1,18 @@
+{
+    "clangd.path": "/usr/bin/clangd", // 至少 clangd version 15
+    "clangd.arguments": [
+        "--query-driver=/usr/bin/g++",
+        "--header-insertion=never",
+        "-j=4",
+    ],
+    "clangd.fallbackFlags": [
+        "-Wall",
+        "-std=c++20",
+    ],
+    "debug.internalConsoleOptions": "neverOpen",
+    // Vim 
+    "vim.handleKeys": {
+        "<C-c>": false,
+        "<C-v>": false
+    }
+}

@@ -1,0 +1,36 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build C++",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-std=c++20",
+                "-g",
+                // "${fileDirname}/**/*.cpp",
+                // "${fileDirname}/*.cpp",
+                "${file}",
+                "-o",
+                "${fileDirname}/a.out",
+                "-Wall",
+                // "-Werror",
+                // "-fsanitize=undefined",
+                // "-fsanitize=address,leak",
+                // "-fsanitize=memory",
+                // "-fsanitize=thread",
+                // "-ffreestanding",
+                // "-static",
+                // "-O2",
+                // "-DNDEBUG"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true,
+            }
+        },
+    ]
+}
