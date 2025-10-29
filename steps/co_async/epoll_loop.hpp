@@ -76,7 +76,9 @@ EpollFilePromise::~EpollFilePromise() {
 
 bool EpollLoop::addListener(EpollFilePromise& promise, int ctl) {
     struct epoll_event event;
-    event.events = promise.mAwaiter->mEvents;
+    event.events =
+        promise.mAwaiter->mEvents |
+        EPOLLONESHOT; // 确保同一个文件描述符(如socket)上的事件在同一时间最多被一个线程处理​​
     event.data.ptr = &promise;
     int res = epoll_ctl(mEpoll, ctl, promise.mAwaiter->mFileNo, &event);
     if (res == -1)
