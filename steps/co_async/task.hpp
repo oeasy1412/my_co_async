@@ -17,9 +17,9 @@ struct Promise {
     auto initial_suspend() noexcept { return std::suspend_always(); }
     auto final_suspend() noexcept { return PreviousAwaiter(mPrevious); }
 
-    template <typename U>
+    template <class U>
     void return_value(U&& ret) noexcept {
-        mResult.putValue(ret);
+        mResult.putValue(std::forward<U>(ret));
     }
 
     void unhandled_exception() noexcept {
@@ -95,8 +95,7 @@ template <class Loop, class T, class P>
 T run_task(Loop& loop, const Task<T, P>& t) {
     auto a = t.operator co_await();
     a.await_suspend(std::noop_coroutine()).resume();
-    while (loop.run()) {
-    }
+    loop.run();
     return a.await_resume();
 }
 
