@@ -107,8 +107,20 @@ struct OStreamBase {
     }
 
     Task<> puts(std::string_view s) {
-        for (char c : s) {
-            co_await putchar(c);
+        // for (char c : s) {
+        //     co_await putchar(c);
+        // }
+        std::size_t written = 0;
+        while (written < s.size()) {
+            if (bufferFull()) {
+                co_await flush();
+            }
+            // 批量复制到缓冲区
+            std::size_t available = mBufSize - mIndex;
+            std::size_t copy_num = std::min(available, s.size() - written);
+            std::copy_n(s.data() + written, copy_num, mBuffer.get() + mIndex);
+            mIndex += copy_num;
+            written += copy_num;
         }
     }
 

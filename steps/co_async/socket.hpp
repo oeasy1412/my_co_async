@@ -30,7 +30,7 @@ inline IpAddress ip_address(const char* ip) {
     if (checkError(inet_pton(AF_INET6, ip, &addr6))) {
         return addr6;
     }
-    hostent* hent = gethostbyname(ip);
+    hostent* hent = gethostbyname(ip); // gethostbyname2
     for (int i = 0; hent->h_addr_list[i]; ++i) {
         if (hent->h_addrtype == AF_INET) {
             std::memcpy(&addr, hent->h_addr_list[i], sizeof(in_addr));
